@@ -11,7 +11,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.aodmusicvisualizer.ui.theme.AODMusicVisualizerTheme
 
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.Switch
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Menu
@@ -26,8 +29,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.Switch as Material3Switch
-
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Card
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material3.Typography
 
 
 class MainActivity : ComponentActivity() {
@@ -58,43 +63,122 @@ class MainActivity : ComponentActivity() {
 
 
 @Preview(showBackground = true)
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TopAppBar() {
-
+    var checked by remember { mutableStateOf(true) }
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
 
-                    ) {
-
-                        Text(
-                            "AOD Music Visualizer",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Divider(modifier = Modifier.padding(0.dp,10.dp))
-
-                    }
-
+                    Text(
+                        "AOD Music Visualizer",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             )
         },
         content = {  innerPadding ->
+            Divider(Modifier.padding(innerPadding))
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = innerPadding.calculateTopPadding(), start = 10.dp),
-                verticalArrangement = Arrangement.Top,
+                    .padding(
+                        top = innerPadding.calculateTopPadding() + 10.dp,
+                        start = 10.dp,
+                        end = 10.dp
+                    )
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
                 horizontalAlignment = Alignment.Start
             ) {
                 Text(
-                    text = "Permissions Granted"
+                    text = "Permissions Granted",
+                    style = MaterialTheme.typography.labelMedium
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Record Audio"
+                    )
+                    Spacer(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight())
+                    Switch(
+                        modifier = Modifier.semantics { contentDescription = "Demo" },
+                        checked = checked,
+                        onCheckedChange =  { checked = it })
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Modify Audio Settings"
+                    )
+                    Spacer(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight())
+                    Switch(
+                        modifier = Modifier.semantics { contentDescription = "Demo" },
+                        checked = checked,
+                        onCheckedChange =  { checked = it })
+                }
+                Divider()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "AOD Service"
+                    )
+                    Spacer(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight())
+                    Switch(
+                        modifier = Modifier.semantics { contentDescription = "Demo" },
+                        checked = checked,
+                        onCheckedChange =  { checked = it })
+                }
+                Divider()
+                Text(
+                    text = "Visualizers"
+                )
+                Column(modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    for(i in 0..5){
+                        Row(modifier = Modifier
+                            .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly) {
+                            OutlinedCard(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .height(100.dp)) {
+                                // Card content
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            OutlinedCard(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .height(100.dp)) {
+                                // Card content
+
+
+                            }
+
+                        }
+                    }
+
+                }
+
+
+
             }
 
         }
@@ -104,10 +188,6 @@ fun TopAppBar() {
 
 
 
-@Composable
-fun Greeting(name: String) {
-    Text(text = "Hello $name!")
-}
 
 @Preview(showBackground = true)
 @Composable
