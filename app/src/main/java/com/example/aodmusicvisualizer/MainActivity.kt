@@ -9,10 +9,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.aodmusicvisualizer.ui.theme.AODMusicVisualizerTheme
 import android.Manifest
+
 import android.animation.ValueAnimator
 import android.graphics.RuntimeShader
 import android.view.animation.LinearInterpolator
 import androidx.compose.foundation.*
+
+import android.media.audiofx.Visualizer
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Canvas
+
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -37,58 +44,19 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.text.style.TextAlign
+
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleCoroutineScope
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-private const val DURATION = 4000f
-private const val COLOR_SHADER_SRC = """
-   uniform float2 iResolution;
-   uniform float iTime;
-   
-   float drawRect(vec2 coords)
-   {
-        vec2 bl = step(vec2(0.1),coords);
-        float pct = bl.x * bl.y;
-        
-        vec2 tr = step(vec2(0.1),1.0-coords);
-        pct = pct * tr.x * tr.y;
-        
-        vec2 bl2 = step(vec2(0.2), coords);
-        vec2 tr2 = step(vec2(0.2),1.0-coords);
-        float pct2 = bl2.x * bl2.y * tr2.x * tr2.y;
-        pct = pct - pct2;
-        return pct;
-   }
-   
-   float drawBars(vec2 coords)
-   {
-        
-        
-        float pct = step(0.2,mod((coords.x*10),0.8));
-        float valy = 1.0 - (step(abs(sin(coords.x*2.0+iTime))-0.1 ,coords.y));
-        pct *= valy;
-        
-        return pct;
-   }
-   
-   half4 main(float2 fragCoord) 
-    {
-       float2 st = fragCoord/iResolution.xy;
-       st.y = 1.0-st.y;
-       vec3 color = vec3(0.0);
-
-       color = vec3(drawBars(st));
-       
-       return half4(color,1.0);
-    }
-"""
-// created as top level constants
-val colorShader = RuntimeShader(COLOR_SHADER_SRC)
-val shaderBrush = ShaderBrush(colorShader)
-// declare the ValueAnimator
-private val shaderAnimator = ValueAnimator.ofFloat(0f, DURATION)
 
 // use it to animate the time uniform
 
@@ -99,16 +67,41 @@ var recordAudioPermissionGranted = false
 
 
 class MainActivity : ComponentActivity() {
+    var visualizer = Visualizer(0)
+    override fun onResume() {
+        super.onResume()
+
+    }
+
+    override fun onPause() {
+        super.onPause()
+        visualizer.release()
+    }
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        var listener = ViewModelProvider(this)[MainViewModel::class.java]
+        lifecycleScope.launch(Dispatchers.IO) {
+
+            visualizer.setDataCaptureListener(listener, Visualizer.getMaxCaptureRate(),false,true)
+            visualizer.setMeasurementMode(Visualizer.MEASUREMENT_MODE_PEAK_RMS)
+            visualizer.setEnabled(true)
+        }
 
         setContent {
 
-            AODMusicVisualizerTheme() {
-                TopAppBar()
+            AODMusicVisualizerTheme {
+                //TopAppBar()
+                var rms = listener.rms.collectAsState()
+                var peak = listener.peak.collectAsState()
+
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val canvasWidth = size.width
+                    val canvasHeight = size.height
+                    drawCircle(Color.Blue, radius = Math.abs(rms.value*4).dp.toPx())
+                }
             }
 
         }
@@ -230,14 +223,7 @@ fun visualizerCard(name:String="test" )
         Canvas(
             modifier = Modifier.fillMaxSize()
         ) {
-            colorShader.setFloatUniform("iResolution",
-                size.width, size.height)
-            colorShader.setFloatUniform(
-                "iTime",
-                time.value
-            )
 
-            drawRect(brush = shaderBrush)
         }
 
     }
