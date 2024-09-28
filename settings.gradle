@@ -10,6 +10,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        flatDir {
+            dirs('spotify-remote')
+        }
     }
 }
 rootProject.name = "AODMusicVisualizer"

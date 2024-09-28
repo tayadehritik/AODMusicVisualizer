@@ -17,6 +17,7 @@ import androidx.compose.foundation.*
 
 import android.media.audiofx.Visualizer
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
 
@@ -41,6 +42,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Card
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.Typography
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.text.style.TextAlign
@@ -57,6 +60,13 @@ import com.google.accompanist.permissions.shouldShowRationale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+import com.spotify.android.appremote.api.ConnectionParams;
+import com.spotify.android.appremote.api.Connector;
+import com.spotify.android.appremote.api.SpotifyAppRemote;
+
+import com.spotify.protocol.client.Subscription;
+import com.spotify.protocol.types.PlayerState;
+import com.spotify.protocol.types.Track;
 
 // use it to animate the time uniform
 
@@ -68,6 +78,9 @@ var recordAudioPermissionGranted = false
 
 class MainActivity : ComponentActivity() {
     var visualizer = Visualizer(0)
+    private val clientId = "74aaba15df23432ea5795d9668f8d058"
+    private val redirectUri = "http://localhost:3000"
+    private var spotifyAppRemote: SpotifyAppRemote? = null
     override fun onResume() {
         super.onResume()
 
@@ -82,26 +95,60 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        var listener = ViewModelProvider(this)[MainViewModel::class.java]
+        /*var listener = ViewModelProvider(this)[MainViewModel::class.java]
         lifecycleScope.launch(Dispatchers.IO) {
 
             visualizer.setDataCaptureListener(listener, Visualizer.getMaxCaptureRate(),false,true)
             visualizer.setMeasurementMode(Visualizer.MEASUREMENT_MODE_PEAK_RMS)
             visualizer.setEnabled(true)
         }
+*/
+        // Set the connection parameters
+        val connectionParams = ConnectionParams.Builder(clientId)
+            .setRedirectUri(redirectUri)
+            .showAuthView(true)
+            .build()
 
+        SpotifyAppRemote.connect(this, connectionParams, object : Connector.ConnectionListener {
+            override fun onConnected(appRemote: SpotifyAppRemote) {
+                spotifyAppRemote = appRemote
+                Log.d("MainActivity", "Connected! Yay!")
+                // Now you can start interacting with App Remote
+                spotifyAppRemote!!.playerApi.subscribeToPlayerState().setEventCallback {
+                    val track: Track = it.track
+                    Log.d("MainActivity", track.name + " by " + track.artist.name)
+                }
+
+            }
+
+            override fun onFailure(throwable: Throwable) {
+                Log.e("MainActivity", throwable.message, throwable)
+                // Something went wrong when attempting to connect! Handle errors here
+            }
+        })
         setContent {
 
             AODMusicVisualizerTheme {
                 //TopAppBar()
-                var rms = listener.rms.collectAsState()
+                /*var rms = listener.rms.collectAsState()
                 var peak = listener.peak.collectAsState()
+                var audioAnalysis = listener.audioAnalysis.collectAsState()
 
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val canvasWidth = size.width
                     val canvasHeight = size.height
-                    drawCircle(Color.Blue, radius = Math.abs(rms.value*4).dp.toPx())
-                }
+                    val barWidth = canvasWidth / audioAnalysis.value.size
+                    var xVal = 0f
+                    for(bar in audioAnalysis.value) {
+                        drawRect(
+                            topLeft = Offset(xVal,canvasHeight/2f),
+                            color = Color.Red,
+                            size = Size(barWidth,1-rms.value.toFloat())
+                        )
+                        xVal += barWidth
+                    }
+
+                }*/
             }
 
         }
@@ -210,7 +257,9 @@ fun visualizerCard(name:String="test" )
             containerColor = MaterialTheme.colorScheme.surface,
         ),
         border = BorderStroke(1.dp, Color.Black),
-        modifier = Modifier.fillMaxWidth().height(400.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(400.dp)
 
 
     ) {

@@ -1,8 +1,10 @@
 package com.example.aodmusicvisualizer
 
 import android.media.audiofx.Visualizer
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.atan2
 import kotlin.math.hypot
 
@@ -11,6 +13,8 @@ class MainViewModel:ViewModel(), Visualizer.OnDataCaptureListener {
     var something:Visualizer.MeasurementPeakRms = Visualizer.MeasurementPeakRms()
     var rms = MutableStateFlow<Double>(0.0)
     var peak = MutableStateFlow<Double>(0.0)
+    var _audioAnalysis = MutableStateFlow<List<Pair<Double,Pair<Float,Float>>>>(listOf(Pair(0.0,Pair(0f,0f))))
+    val audioAnalysis = _audioAnalysis.asStateFlow()
     fun startVisualizer() {
         println("here")
 
@@ -42,10 +46,10 @@ class MainViewModel:ViewModel(), Visualizer.OnDataCaptureListener {
         }
 
         val zipped = magnitudes.zip(phases)
-        val finalzipped = frequencies.zip(zipped) { frequency, other ->
+        _audioAnalysis.value = frequencies.zip(zipped) { frequency, other ->
             Pair(frequency/1000.0,other)
         }
-        println(finalzipped)
+
         rms.value = magnitudes.zip(phases)[1].first.toDouble()
         //rms.value = something.mRms / 100.0
         peak.value = something.mPeak / 100.0
