@@ -57,6 +57,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.example.aodmusicvisualizer.data.api.SpotifyAPI
+import com.example.aodmusicvisualizer.data.api.SpotifyAuthAPI
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -88,92 +90,15 @@ var recordAudioPermissionGranted = false
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     var visualizer = Visualizer(0)
-    private val clientId = "74aaba15df23432ea5795d9668f8d058"
-    private val redirectUri = "http://localhost:3000"
-    private var spotifyAppRemote: SpotifyAppRemote? = null
-    @Inject
-    lateinit var mediaPlayer: MediaPlayer
-    var tempo:Double = 100.0
-    private var isRunning:Boolean = false
-    private lateinit var handler: Handler
-
-    private val metronomeRunnable = object : Runnable{
-        override fun run() {
-            if(isRunning) {
-                mediaPlayer.start()
-                handler.postDelayed(this, (60000/tempo).toLong())
-            }
-
-        }
-    }
-    private fun connected() {
-        spotifyAppRemote?.let {
-            // Play a playlist
-            //val playlistURI = "spotify:playlist:37i9dQZF1DX2sUQwD7tbmL"
-            //it.playerApi.play(playlistURI)
-            // Subscribe to PlayerState
-            it.playerApi.playerState.setResultCallback {
-                println("${it.playbackPosition}")
-            }
-            it.playerApi.subscribeToPlayerState().setEventCallback {
-                val track: Track = it.track
-                if(it.isPaused) {
-                    /*isRunning = false
-                    mediaPlayer.stop()
-                    mediaPlayer.prepare()*/
-
-                }
-                else {
-                    println(it.track.uri)
-                    /*isRunning = true
-                    handler.post(metronomeRunnable)*/
-                }
-                Log.d("MainActivity", track.name + " by " + track.artist.name)
-                Log.d("Playback Position", "Playback position ${it.playbackPosition}")
-            }
-        }
-
-    }
 
     override fun onStart() {
         super.onStart()
 
-        handler = Handler(Looper.getMainLooper())
-        val connectionParams = ConnectionParams.Builder(clientId)
-            .setRedirectUri(redirectUri)
-            .showAuthView(true)
-            .build()
 
-        var soundPool = SoundPool.Builder().build()
-        var id = soundPool.load(this,R.raw.mode_2_first,1)
-
-        Timer().scheduleAtFixedRate(timerTask {
-                soundPool.play(id,1.0f,1.0f,1,0,1.0f)
-        },0,((60/tempo)*1000).toLong())
-
-        SpotifyAppRemote.connect(this, connectionParams, object : Connector.ConnectionListener {
-            override fun onConnected(appRemote: SpotifyAppRemote) {
-                spotifyAppRemote = appRemote
-                Log.d("MainActivity", "Connected! Yay!")
-                // Now you can start interacting with App Remote
-                //isRunning = true
-                //handler.post(metronomeRunnable)
-                connected()
-            }
-
-            override fun onFailure(throwable: Throwable) {
-                Log.e("MainActivity", throwable.message, throwable)
-                // Something went wrong when attempting to connect! Handle errors here
-            }
-        })
     }
 
     override fun onStop() {
         super.onStop()
-        spotifyAppRemote?.let {
-            SpotifyAppRemote.disconnect(it)
-        }
-
     }
 
     @OptIn(ExperimentalMaterial3Api::class)

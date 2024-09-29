@@ -3,13 +3,19 @@ package com.example.aodmusicvisualizer
 import android.media.audiofx.Visualizer
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.ViewModel
+import com.example.aodmusicvisualizer.data.api.SpotifyLocal
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import javax.inject.Inject
 import kotlin.math.atan2
 import kotlin.math.hypot
 
 
-class MainViewModel:ViewModel(), Visualizer.OnDataCaptureListener {
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    spotifyLocal: SpotifyLocal
+):ViewModel(), Visualizer.OnDataCaptureListener {
     var something:Visualizer.MeasurementPeakRms = Visualizer.MeasurementPeakRms()
     var rms = MutableStateFlow<Double>(0.0)
     var peak = MutableStateFlow<Double>(0.0)
