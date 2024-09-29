@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        TODO("Implement Time Signature with Visuals not audio needed")
         var listener = ViewModelProvider(this)[MainViewModel::class.java]
         lifecycleScope.launch(Dispatchers.IO) {
 

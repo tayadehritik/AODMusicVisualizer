@@ -30,6 +30,8 @@ class SpotifyLocal(
     private val redirectUri = "http://localhost:3000"
     private var spotifyAppRemote: SpotifyAppRemote? = null
 
+
+
     lateinit var trackAnalysis: TrackAnalysis
     var currentTempo:Double = 1.0
     private fun connected() {
