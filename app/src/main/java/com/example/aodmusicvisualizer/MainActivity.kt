@@ -12,11 +12,15 @@ import android.Manifest
 
 import android.animation.ValueAnimator
 import android.graphics.RuntimeShader
+import android.media.MediaPlayer
+import android.media.SoundPool
 import android.view.animation.LinearInterpolator
 import androidx.compose.foundation.*
 
 import android.media.audiofx.Visualizer
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
@@ -67,6 +71,12 @@ import com.spotify.android.appremote.api.SpotifyAppRemote;
 import com.spotify.protocol.client.Subscription;
 import com.spotify.protocol.types.PlayerState;
 import com.spotify.protocol.types.Track;
+import dagger.hilt.android.AndroidEntryPoint
+import java.util.Timer
+import java.util.TimerTask
+import javax.inject.Inject
+import kotlin.concurrent.timer
+import kotlin.concurrent.timerTask
 
 // use it to animate the time uniform
 
@@ -75,50 +85,80 @@ import com.spotify.protocol.types.Track;
 var modifyAudioSettingsPermissionGranted = false
 var recordAudioPermissionGranted = false
 
-
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     var visualizer = Visualizer(0)
     private val clientId = "74aaba15df23432ea5795d9668f8d058"
     private val redirectUri = "http://localhost:3000"
     private var spotifyAppRemote: SpotifyAppRemote? = null
-    override fun onResume() {
-        super.onResume()
+    @Inject
+    lateinit var mediaPlayer: MediaPlayer
+    var tempo:Double = 100.0
+    private var isRunning:Boolean = false
+    private lateinit var handler: Handler
 
-    }
+    private val metronomeRunnable = object : Runnable{
+        override fun run() {
+            if(isRunning) {
+                mediaPlayer.start()
+                handler.postDelayed(this, (60000/tempo).toLong())
+            }
 
-    override fun onPause() {
-        super.onPause()
-        visualizer.release()
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        /*var listener = ViewModelProvider(this)[MainViewModel::class.java]
-        lifecycleScope.launch(Dispatchers.IO) {
-
-            visualizer.setDataCaptureListener(listener, Visualizer.getMaxCaptureRate(),false,true)
-            visualizer.setMeasurementMode(Visualizer.MEASUREMENT_MODE_PEAK_RMS)
-            visualizer.setEnabled(true)
         }
-*/
-        // Set the connection parameters
+    }
+    private fun connected() {
+        spotifyAppRemote?.let {
+            // Play a playlist
+            //val playlistURI = "spotify:playlist:37i9dQZF1DX2sUQwD7tbmL"
+            //it.playerApi.play(playlistURI)
+            // Subscribe to PlayerState
+            it.playerApi.playerState.setResultCallback {
+                println("${it.playbackPosition}")
+            }
+            it.playerApi.subscribeToPlayerState().setEventCallback {
+                val track: Track = it.track
+                if(it.isPaused) {
+                    /*isRunning = false
+                    mediaPlayer.stop()
+                    mediaPlayer.prepare()*/
+
+                }
+                else {
+                    println(it.track.uri)
+                    /*isRunning = true
+                    handler.post(metronomeRunnable)*/
+                }
+                Log.d("MainActivity", track.name + " by " + track.artist.name)
+                Log.d("Playback Position", "Playback position ${it.playbackPosition}")
+            }
+        }
+
+    }
+
+    override fun onStart() {
+        super.onStart()
+
+        handler = Handler(Looper.getMainLooper())
         val connectionParams = ConnectionParams.Builder(clientId)
             .setRedirectUri(redirectUri)
             .showAuthView(true)
             .build()
+
+        var soundPool = SoundPool.Builder().build()
+        var id = soundPool.load(this,R.raw.mode_2_first,1)
+
+        Timer().scheduleAtFixedRate(timerTask {
+                soundPool.play(id,1.0f,1.0f,1,0,1.0f)
+        },0,((60/tempo)*1000).toLong())
 
         SpotifyAppRemote.connect(this, connectionParams, object : Connector.ConnectionListener {
             override fun onConnected(appRemote: SpotifyAppRemote) {
                 spotifyAppRemote = appRemote
                 Log.d("MainActivity", "Connected! Yay!")
                 // Now you can start interacting with App Remote
-                spotifyAppRemote!!.playerApi.subscribeToPlayerState().setEventCallback {
-                    val track: Track = it.track
-                    Log.d("MainActivity", track.name + " by " + track.artist.name)
-                }
-
+                //isRunning = true
+                //handler.post(metronomeRunnable)
+                connected()
             }
 
             override fun onFailure(throwable: Throwable) {
@@ -126,11 +166,33 @@ class MainActivity : ComponentActivity() {
                 // Something went wrong when attempting to connect! Handle errors here
             }
         })
+    }
+
+    override fun onStop() {
+        super.onStop()
+        spotifyAppRemote?.let {
+            SpotifyAppRemote.disconnect(it)
+        }
+
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        var listener = ViewModelProvider(this)[MainViewModel::class.java]
+        lifecycleScope.launch(Dispatchers.IO) {
+
+            visualizer.setDataCaptureListener(listener, Visualizer.getMaxCaptureRate(),false,true)
+            visualizer.setMeasurementMode(Visualizer.MEASUREMENT_MODE_PEAK_RMS)
+            visualizer.setEnabled(true)
+        }
+
         setContent {
 
             AODMusicVisualizerTheme {
                 //TopAppBar()
-                /*var rms = listener.rms.collectAsState()
+                var rms = listener.rms.collectAsState()
                 var peak = listener.peak.collectAsState()
                 var audioAnalysis = listener.audioAnalysis.collectAsState()
 
@@ -143,12 +205,12 @@ class MainActivity : ComponentActivity() {
                         drawRect(
                             topLeft = Offset(xVal,canvasHeight/2f),
                             color = Color.Red,
-                            size = Size(barWidth,1-rms.value.toFloat())
+                            size = Size(barWidth,1-(bar.second.first +rms.value.toFloat()))
                         )
                         xVal += barWidth
                     }
 
-                }*/
+                }
             }
 
         }

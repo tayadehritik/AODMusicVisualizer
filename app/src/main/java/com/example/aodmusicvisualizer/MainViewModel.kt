@@ -49,7 +49,7 @@ class MainViewModel:ViewModel(), Visualizer.OnDataCaptureListener {
         _audioAnalysis.value = frequencies.zip(zipped) { frequency, other ->
             Pair(frequency/1000.0,other)
         }
-
+        //println(frequencies.map { it/1000.0 })
         rms.value = magnitudes.zip(phases)[1].first.toDouble()
         //rms.value = something.mRms / 100.0
         peak.value = something.mPeak / 100.0

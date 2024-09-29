@@ -3,6 +3,8 @@ import java.nio.file.Files
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id("kotlin-kapt")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -62,6 +64,9 @@ dependencies {
     implementation(name:'spotify-app-remote-release-0.8.0', ext:'aar')
     implementation "com.google.code.gson:gson:2.6.1"
 
+    implementation("com.google.dagger:hilt-android:2.51.1")
+    kapt("com.google.dagger:hilt-android-compiler:2.51.1")
+
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
@@ -69,4 +74,9 @@ dependencies {
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
 
+}
+
+// Allow references to generated code
+kapt {
+    correctErrorTypes = true
 }
