@@ -44,13 +44,14 @@ class SpotifyLocal(
                         }
                         //println(trackAnalysis.sections)
                         if(idealSection!!.tempo != currentTempo) {
-                            metronome.updateTempo(idealSection!!.tempo!!)
+                            println("${idealSection!!.start!!*1000} idealSelection start ${playerState.playbackPosition} playbackPosition ")
+                            metronome.updateTempo(idealSection!!.tempo!!, idealSection!!.timeSignature!!, ((idealSection!!.start!!*1000) - (playerState.playbackPosition)).toLong())
                             currentTempo = idealSection!!.tempo!!
                         }
-                        println("$idealSection!! ${playerState.playbackPosition}")
+                        //println("$idealSection!! ${playerState.playbackPosition}")
                     }
                 }
-            },0,1000)
+            },0,1)
 
             it.playerApi.subscribeToPlayerState().setEventCallback {playerState ->
                 val track: Track = playerState.track

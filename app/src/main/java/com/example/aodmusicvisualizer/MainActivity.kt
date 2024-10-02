@@ -59,6 +59,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.aodmusicvisualizer.data.api.SpotifyAPI
 import com.example.aodmusicvisualizer.data.api.SpotifyAuthAPI
+import com.example.aodmusicvisualizer.data.api.SpotifyLocal
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -91,6 +92,9 @@ var recordAudioPermissionGranted = false
 class MainActivity : ComponentActivity() {
     var visualizer = Visualizer(0)
 
+    @Inject
+    lateinit var metronome: Metronome
+
     override fun onStart() {
         super.onStart()
 
@@ -104,7 +108,7 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        TODO("Implement Time Signature with Visuals not audio needed")
+        //TODO("Implement Time Signature with Visuals not audio needed")
         var listener = ViewModelProvider(this)[MainViewModel::class.java]
         lifecycleScope.launch(Dispatchers.IO) {
 

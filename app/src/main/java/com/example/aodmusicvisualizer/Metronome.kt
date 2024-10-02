@@ -11,15 +11,22 @@ class Metronome(
 ) {
 
     var tempo:Double = 129.0
+    var timeSig:Double = 1.0
+    var delay: Long = 0
+
     var timer = Timer()
     var soundPool = SoundPool.Builder().build()
     var id = soundPool.load(app,R.raw.mode_2_first,1)
     fun start() {
         stop()
+
+        println("$delay delay")
         timer.scheduleAtFixedRate(timerTask {
             soundPool.play(id,1.0f,1.0f,1,0,1.0f)
-            println("$tempo tempo")
-        },0,((60/tempo)*1000).toLong())
+            /*println("$tempo tempo")
+            println("$timeSig timeSig")*/
+
+        },delay,((60/tempo)*1000).toLong())
     }
 
     fun stop() {
@@ -28,8 +35,10 @@ class Metronome(
         timer = Timer()
     }
 
-    fun updateTempo(nTempo:Double) {
+    fun updateTempo(nTempo:Double, nTimeSig:Double, nDelay: Long) {
         tempo = nTempo
+        timeSig = nTimeSig
+        if(delay > 0) delay = nDelay
         start()
     }
 }
