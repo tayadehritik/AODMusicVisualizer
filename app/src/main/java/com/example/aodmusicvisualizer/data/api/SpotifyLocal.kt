@@ -51,6 +51,7 @@ class SpotifyLocal(
                         //println("$idealSection!! ${playerState.playbackPosition}")
                     }
                 }
+                metronome.decreaseBeatValue()
             },0,1)
 
             it.playerApi.subscribeToPlayerState().setEventCallback {playerState ->
