@@ -23,6 +23,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 
 import androidx.compose.foundation.lazy.LazyColumn
@@ -50,6 +51,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.text.style.TextAlign
 
 import androidx.compose.ui.platform.LocalContext
@@ -124,20 +126,29 @@ class MainActivity : ComponentActivity() {
                 var rms = listener.rms.collectAsState()
                 var peak = listener.peak.collectAsState()
                 var audioAnalysis = listener.audioAnalysis.collectAsState()
-
+                var beat = metronome.beat.collectAsState()
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val canvasWidth = size.width
                     val canvasHeight = size.height
                     val barWidth = canvasWidth / audioAnalysis.value.size
                     var xVal = 0f
-                    for(bar in audioAnalysis.value) {
+                    /*for(bar in audioAnalysis.value) {
                         drawRect(
                             topLeft = Offset(xVal,canvasHeight/2f),
                             color = Color.Red,
                             size = Size(barWidth,1-(bar.second.first +rms.value.toFloat()))
                         )
                         xVal += barWidth
+                    }*/
+
+                    scale(beat.value) {
+                        drawCircle(
+                            color = Color.Blue,
+                            radius = size.minDimension / 2.0f,
+                            alpha = 0.5f
+                        )
                     }
+
 
                 }
             }
