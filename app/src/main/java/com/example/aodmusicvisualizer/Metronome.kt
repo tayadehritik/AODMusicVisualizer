@@ -22,11 +22,11 @@ class Metronome(
 
         println("$delay delay")
         timer.scheduleAtFixedRate(timerTask {
-            soundPool.play(id,1.0f,1.0f,1,0,1.0f)
+            //soundPool.play(id,1.0f,1.0f,1,0,1.0f)
             /*println("$tempo tempo")
             println("$timeSig timeSig")*/
 
-        },delay,((60/tempo)*1000).toLong())
+        },0,((60/tempo)*1000).toLong())
     }
 
     fun stop() {
