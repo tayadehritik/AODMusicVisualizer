@@ -11,7 +11,10 @@ import com.example.aodmusicvisualizer.ui.theme.AODMusicVisualizerTheme
 import android.Manifest
 
 import android.animation.ValueAnimator
+import android.content.Context
 import android.graphics.RuntimeShader
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.media.MediaPlayer
 import android.media.SoundPool
 import android.view.animation.LinearInterpolator
@@ -46,19 +49,36 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Card
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Typography
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.palette.graphics.Palette
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
+import com.bumptech.glide.integration.compose.Placeholder
+import com.bumptech.glide.integration.compose.placeholder
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import com.example.aodmusicvisualizer.data.api.SpotifyAPI
 import com.example.aodmusicvisualizer.data.api.SpotifyAuthAPI
 import com.example.aodmusicvisualizer.data.api.SpotifyLocal
@@ -77,6 +97,7 @@ import com.spotify.protocol.client.Subscription;
 import com.spotify.protocol.types.PlayerState;
 import com.spotify.protocol.types.Track;
 import dagger.hilt.android.AndroidEntryPoint
+import java.nio.file.WatchEvent
 import java.util.Timer
 import java.util.TimerTask
 import javax.inject.Inject
@@ -119,6 +140,7 @@ class MainActivity : ComponentActivity() {
             visualizer.setEnabled(true)
         }
 
+
         setContent {
 
             AODMusicVisualizerTheme {
@@ -127,19 +149,19 @@ class MainActivity : ComponentActivity() {
                 var peak = listener.peak.collectAsState()
                 var audioAnalysis = listener.audioAnalysis.collectAsState()
                 var beat = metronome.beat.collectAsState()
-                Canvas(modifier = Modifier.fillMaxSize()) {
+                /*Canvas(modifier = Modifier.fillMaxSize()) {
                     val canvasWidth = size.width
                     val canvasHeight = size.height
                     val barWidth = canvasWidth / audioAnalysis.value.size
                     var xVal = 0f
-                    /*for(bar in audioAnalysis.value) {
+                    *//*for(bar in audioAnalysis.value) {
                         drawRect(
                             topLeft = Offset(xVal,canvasHeight/2f),
                             color = Color.Red,
                             size = Size(barWidth,1-(bar.second.first +rms.value.toFloat()))
                         )
                         xVal += barWidth
-                    }*/
+                    }*//*
 
                     scale(beat.value) {
                         drawCircle(
@@ -150,7 +172,14 @@ class MainActivity : ComponentActivity() {
                     }
 
 
+                }*/
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.Absolute.Center,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    visualizerCircle(beat.value)
                 }
+
             }
 
         }
@@ -241,7 +270,7 @@ fun TopAppBar() {
 
 
 
-@Preview
+
 @Composable
 fun visualizerCard(name:String="test" )
 {
@@ -367,6 +396,85 @@ fun getModifyAudioSettingsPermission() {
         }
     }
 }
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Preview
+@Composable
+fun visualizerCircle(scale:Float = 1.0f) {
+    val borderWidth = 15.dp
+    var borderColor = remember {
+        -6768424
+    }
+    var dominantColor : Int = 0
+    var context = LocalContext.current
+    GlideImage(
+        model = "https://i.scdn.co/image/ab67616d0000b2731f675e7b8bae408653346dd9",
+        contentDescription = "",
+        contentScale = ContentScale.Crop,
+        loading = placeholder(ColorPainter(Color.Blue)),
+        modifier = Modifier
+            .size(250.dp)
+            .scale(scale)
+            .border(
+                BorderStroke(borderWidth, Color(borderColor)),
+                CircleShape
+            )
+            .shadow(5.dp, CircleShape)
+            .padding(borderWidth)
+            .clip(CircleShape)
+    ) {
+        it.addListener(object :RequestListener<Drawable> {
+            override fun onLoadFailed(
+                p0: GlideException?,
+                p1: Any?,
+                p2: Target<Drawable>,
+                p3: Boolean
+            ): Boolean {
+
+                return false
+            }
+
+            override fun onResourceReady(
+                resource: Drawable,
+                model: Any,
+                target: Target<Drawable>?,
+                dataSource: DataSource,
+                isFirstResource: Boolean
+            ): Boolean {
+                val drawable  = resource as BitmapDrawable
+                val bitmap  = drawable.bitmap
+                Palette.Builder(bitmap).generate{
+                    it?.let { palette ->
+                        borderColor = palette.getDominantColor(
+                            ContextCompat.getColor(
+                                context,
+                                R.color.white
+                            )
+                        )
+                        println(borderColor)
+                    }
+                }
+
+                return false
+            }
+
+        })
+    }
+
+    /*Canvas(modifier = Modifier
+        .fillMaxSize()
+        .shadow(5.dp, CircleShape, true)) {
+        scale(1f) {
+            drawCircle(
+                color = Color.Blue,
+                radius = size.minDimension / 2.0f,
+                alpha = 0.5f
+            )
+        }
+    }*/
+
+}
+
 
 
 
