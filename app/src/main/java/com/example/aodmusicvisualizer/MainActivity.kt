@@ -12,6 +12,8 @@ import android.Manifest
 
 import android.animation.ValueAnimator
 import android.content.Context
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.RuntimeShader
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
@@ -39,7 +41,6 @@ import androidx.compose.material.rememberScaffoldState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,25 +53,54 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Typography
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.DrawStyle
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.VectorProperty
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toSize
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.palette.graphics.Palette
+import coil3.asDrawable
+import coil3.compose.AsyncImagePainter
+import coil3.compose.ConstraintsSizeResolver
+import coil3.compose.LocalPlatformContext
+import coil3.compose.rememberAsyncImagePainter
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.size.Scale
+import coil3.toBitmap
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.bumptech.glide.integration.compose.Placeholder
@@ -117,6 +147,8 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var metronome: Metronome
+    @Inject
+    lateinit var spotifyLocal:SpotifyLocal
 
     override fun onStart() {
         super.onStart()
@@ -149,6 +181,8 @@ class MainActivity : ComponentActivity() {
                 var peak = listener.peak.collectAsState()
                 var audioAnalysis = listener.audioAnalysis.collectAsState()
                 var beat = metronome.beat.collectAsState()
+                var borderColor = listener.borderColor.collectAsState()
+                var albumArtURL = spotifyLocal.albumArtURL.collectAsState()
                 /*Canvas(modifier = Modifier.fillMaxSize()) {
                     val canvasWidth = size.width
                     val canvasHeight = size.height
@@ -177,7 +211,15 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.Absolute.Center,
                     verticalAlignment = Alignment.CenterVertically) {
-                    visualizerCircle(beat.value)
+
+                    CoilVisualizerCircle(
+                        beat.value,
+                        borderColor.value,
+                        albumArtURL = albumArtURL.value,
+                        updateBorderColor = {
+                            listener.updateBorderColor(it)
+                        }
+                    )
                 }
 
             }
@@ -185,7 +227,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
 
 
 
@@ -397,23 +438,32 @@ fun getModifyAudioSettingsPermission() {
     }
 }
 
+
+
 @OptIn(ExperimentalGlideComposeApi::class)
-@Preview
 @Composable
-fun visualizerCircle(scale:Float = 1.0f) {
+fun visualizerCircle(
+    scale:Float = 1.0f,
+    borderColor:Int = -14675952,
+    albumArtURL:String = "",
+    updateBorderColor:(Int) -> Unit = {}
+) {
+    val shadowImage = ImageBitmap.imageResource(id = R.drawable.shadow)
+    var albumImage = ImageBitmap.imageResource(id = R.drawable.album_art)
+
     val borderWidth = 15.dp
-    var borderColor = remember {
-        -6768424
-    }
     var dominantColor : Int = 0
     var context = LocalContext.current
+    println("albumArtURL $albumArtURL")
+
+
     GlideImage(
-        model = "https://i.scdn.co/image/ab67616d0000b2731f675e7b8bae408653346dd9",
+        model = albumArtURL,
         contentDescription = "",
         contentScale = ContentScale.Crop,
         loading = placeholder(ColorPainter(Color.Blue)),
         modifier = Modifier
-            .size(250.dp)
+            .size(215.dp)
             .scale(scale)
             .border(
                 BorderStroke(borderWidth, Color(borderColor)),
@@ -421,6 +471,16 @@ fun visualizerCircle(scale:Float = 1.0f) {
             )
             .shadow(5.dp, CircleShape)
             .padding(borderWidth)
+            .drawWithContent {
+                drawImage(
+                    albumImage,
+                )
+                drawImage(
+                    shadowImage,
+                    topLeft = Offset(2f, 0f)
+                )
+
+            }
             .clip(CircleShape)
     ) {
         it.addListener(object :RequestListener<Drawable> {
@@ -442,20 +502,21 @@ fun visualizerCircle(scale:Float = 1.0f) {
                 isFirstResource: Boolean
             ): Boolean {
                 val drawable  = resource as BitmapDrawable
+                albumImage = drawable.bitmap.asImageBitmap()
                 val bitmap  = drawable.bitmap
                 Palette.Builder(bitmap).generate{
                     it?.let { palette ->
-                        borderColor = palette.getDominantColor(
+                        updateBorderColor(palette.getDominantColor(
                             ContextCompat.getColor(
                                 context,
                                 R.color.white
                             )
-                        )
-                        println(borderColor)
+                        ))
+
                     }
                 }
 
-                return false
+                return true
             }
 
         })
@@ -473,6 +534,65 @@ fun visualizerCircle(scale:Float = 1.0f) {
         }
     }*/
 
+}
+
+@Composable
+@Preview
+fun CoilVisualizerCircle(
+    scale:Float = 1.0f,
+    borderColor:Int = -14675952,
+    albumArtURL:String = "",
+    updateBorderColor:(Int) -> Unit = {}
+) {
+    println(albumArtURL)
+    var context = LocalContext.current
+    val shadowImage = ImageBitmap.imageResource(id = R.drawable.shadow)
+    val sizeResolver = remember{ ConstraintsSizeResolver()}
+    val painter = rememberAsyncImagePainter(
+        model = ImageRequest.Builder(LocalPlatformContext.current)
+            .data(albumArtURL)
+            .size(sizeResolver)
+            .allowHardware(false)
+            .build(),
+        onSuccess = {resultState ->
+            Palette.Builder(resultState.result.image.toBitmap()).generate {
+                it?.let { palette ->
+                    updateBorderColor(palette.getDominantColor(
+                        ContextCompat.getColor(
+                            context,
+                            R.color.white
+                        )
+                    ))
+                }
+
+            }
+        }
+    )
+
+    Image(
+        painter = painter,
+        contentDescription = "",
+        modifier = Modifier
+            .size(250.dp)
+            .then(sizeResolver)
+            .scale(scale)
+            .clip(CircleShape)
+            .border(
+                BorderStroke(15.dp, Color(borderColor)),
+                CircleShape
+            )
+            .drawWithContent {
+                // Draw the original content (image and border)
+                drawContent()
+                drawImage(
+                    shadowImage,
+                    dstOffset = IntOffset(0,0),
+                    dstSize = IntSize(size.width.toInt(),size.height.toInt()),
+                    blendMode = BlendMode.SrcOver
+                )
+            }
+
+    )
 }
 
 
