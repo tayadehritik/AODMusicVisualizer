@@ -6,6 +6,7 @@ import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.lifecycleScope
 import com.example.aodmusicvisualizer.Metronome
 import com.example.example.TrackAnalysis
+import com.example.example.TrackInAlbum
 import com.spotify.android.appremote.api.ConnectionParams
 import com.spotify.android.appremote.api.Connector
 import com.spotify.android.appremote.api.SpotifyAppRemote
@@ -13,6 +14,8 @@ import com.spotify.protocol.types.Track
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Timer
 import javax.inject.Inject
@@ -33,7 +36,12 @@ class SpotifyLocal(
 
 
     lateinit var trackAnalysis: TrackAnalysis
+    lateinit var trackInAlbum:TrackInAlbum
     var currentTempo:Double = 1.0
+
+    private var _albumArtURL = MutableStateFlow<String>("")
+    var albumArtURL = _albumArtURL.asStateFlow()
+
     private fun connected() {
         spotifyAppRemote?.let {
             Timer().scheduleAtFixedRate(timerTask {
@@ -65,6 +73,9 @@ class SpotifyLocal(
                         //println(spotifyAPI.getTrackAnalysis(it.track.uri.split(":")[2]))
                         trackAnalysis = spotifyAPI.getTrackAnalysis(playerState.track.uri.split(":")[2],
                             "Bearer "+spotifyAuthAPI.getToken().body()!!.access_token).body()!!
+                        trackInAlbum = spotifyAPI.getTrackInAlbum(playerState.track.uri.split(":")[2],
+                            "Bearer "+spotifyAuthAPI.getToken().body()!!.access_token).body()!!
+                        _albumArtURL.value = trackInAlbum.album!!.images.first().url!!
 
                     }
 

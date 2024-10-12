@@ -2,6 +2,7 @@ package com.example.aodmusicvisualizer
 
 import android.media.audiofx.Visualizer
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import com.example.aodmusicvisualizer.data.api.SpotifyLocal
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,6 +22,9 @@ class MainViewModel @Inject constructor(
     var peak = MutableStateFlow<Double>(0.0)
     var _audioAnalysis = MutableStateFlow<List<Pair<Double,Pair<Float,Float>>>>(listOf(Pair(0.0,Pair(0f,0f))))
     val audioAnalysis = _audioAnalysis.asStateFlow()
+
+    private var _borderColor = MutableStateFlow<Int>(-14675952)
+    var borderColor = _borderColor.asStateFlow()
     fun startVisualizer() {
         println("here")
 
@@ -59,6 +63,10 @@ class MainViewModel @Inject constructor(
         rms.value = magnitudes.zip(phases)[1].first.toDouble()
         //rms.value = something.mRms / 100.0
         peak.value = something.mPeak / 100.0
+    }
+
+    fun updateBorderColor(nColor:Int) {
+        _borderColor.value = nColor
     }
 
 

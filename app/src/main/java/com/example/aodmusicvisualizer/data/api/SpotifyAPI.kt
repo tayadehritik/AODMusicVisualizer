@@ -1,6 +1,7 @@
 package com.example.aodmusicvisualizer.data.api
 
 import com.example.example.TrackAnalysis
+import com.example.example.TrackInAlbum
 import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
@@ -25,6 +26,10 @@ interface SpotifyAPI {
     @GET("audio-analysis/{id}")
     suspend fun getTrackAnalysis(@Path("id") trackURI:String,
                                  @Header("Authorization") token:String):Response<TrackAnalysis>
+
+    @GET("tracks/{id}")
+    suspend fun getTrackInAlbum(@Path("id") trackURI:String,
+                                 @Header("Authorization") token:String):Response<TrackInAlbum>
 
 
 }
