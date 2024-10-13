@@ -180,7 +180,7 @@ class MainActivity : ComponentActivity() {
                 var rms = listener.rms.collectAsState()
                 var peak = listener.peak.collectAsState()
                 var audioAnalysis = listener.audioAnalysis.collectAsState()
-                var beat = metronome.beat.collectAsState()
+                var beat = spotifyLocal.spotifyTick.collectAsState()
                 var borderColor = listener.borderColor.collectAsState()
                 var albumArtURL = spotifyLocal.albumArtURL.collectAsState()
                 /*Canvas(modifier = Modifier.fillMaxSize()) {
@@ -544,7 +544,7 @@ fun CoilVisualizerCircle(
     albumArtURL:String = "",
     updateBorderColor:(Int) -> Unit = {}
 ) {
-    println(albumArtURL)
+
     var context = LocalContext.current
     val shadowImage = ImageBitmap.imageResource(id = R.drawable.shadow)
     val sizeResolver = remember{ ConstraintsSizeResolver()}

@@ -2,9 +2,11 @@ package com.example.aodmusicvisualizer.data.api
 
 import android.app.Application
 import android.util.Log
+import androidx.core.math.MathUtils
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.lifecycleScope
 import com.example.aodmusicvisualizer.Metronome
+import com.example.example.Beats
 import com.example.example.TrackAnalysis
 import com.example.example.TrackInAlbum
 import com.spotify.android.appremote.api.ConnectionParams
@@ -38,34 +40,50 @@ class SpotifyLocal(
     lateinit var trackAnalysis: TrackAnalysis
     lateinit var trackInAlbum:TrackInAlbum
     var currentTempo:Double = 1.0
+    var startBeat:Int = 0
 
     private var _albumArtURL = MutableStateFlow<String>("")
     var albumArtURL = _albumArtURL.asStateFlow()
+
+    private var _spotifyTick = MutableStateFlow(1f)
+    var spotifyTick = _spotifyTick.asStateFlow()
 
     private fun connected() {
         spotifyAppRemote?.let {
             Timer().scheduleAtFixedRate(timerTask {
                 it.playerApi.playerState.setResultCallback { playerState ->
                     if(this@SpotifyLocal::trackAnalysis.isInitialized) {
-                        var idealSection = trackAnalysis!!.sections.findLast {
+                        /*var idealSection = trackAnalysis!!.sections.findLast {
                             (it.start!!) *1000 <= playerState.playbackPosition
+                        }*/
+                        //println(trackAnalysis.beats)
+                        /*startBeat = trackAnalysis!!.beats.indexOfLast {
+                            (it.start!!) *1000 <= playerState.playbackPosition
+                        }!!*/
+                        println("${playerState.playbackPosition} - ${(trackAnalysis.beats[startBeat].start!!*1000)}")
+                        if(playerState.playbackPosition >= (trackAnalysis.beats[startBeat].start!!*1000)) {
+                            _spotifyTick.value = 1f
+
+                            startBeat =  Math.floorMod((startBeat + 1), trackAnalysis.beats.size)
                         }
+
                         //println(trackAnalysis.sections)
-                        if(idealSection!!.tempo != currentTempo) {
+                        /*if(idealSection!!.tempo != currentTempo) {
                             println("${idealSection!!.start!!*1000} idealSelection start ${playerState.playbackPosition} playbackPosition ")
                             metronome.updateTempo(idealSection!!.tempo!!, idealSection!!.timeSignature!!, ((idealSection!!.start!!*1000) - (playerState.playbackPosition)).toLong())
                             currentTempo = idealSection!!.tempo!!
-                        }
+                        }*/
                         //println("$idealSection!! ${playerState.playbackPosition}")
                     }
                 }
-                metronome.decreaseBeatValue()
+                if(_spotifyTick.value > 0.95f) _spotifyTick.value = _spotifyTick.value - 0.00025f
+                /*metronome.decreaseBeatValue()*/
             },0,1)
 
             it.playerApi.subscribeToPlayerState().setEventCallback {playerState ->
                 val track: Track = playerState.track
                 if(playerState.isPaused) {
-                    metronome.stop()
+                    //metronome.stop()
                 }
                 else {
 
@@ -75,6 +93,9 @@ class SpotifyLocal(
                             "Bearer "+spotifyAuthAPI.getToken().body()!!.access_token).body()!!
                         trackInAlbum = spotifyAPI.getTrackInAlbum(playerState.track.uri.split(":")[2],
                             "Bearer "+spotifyAuthAPI.getToken().body()!!.access_token).body()!!
+                        startBeat = trackAnalysis!!.beats.indexOfLast {
+                            (it.start!!) *1000 <= playerState.playbackPosition
+                        }!!
                         _albumArtURL.value = trackInAlbum.album!!.images.first().url!!
 
                     }
